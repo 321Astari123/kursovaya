@@ -1,0 +1,78 @@
+-- Роли
+CREATE ROLE IF NOT EXISTS User;
+CREATE ROLE IF NOT EXISTS Admin;
+-- Права роли
+GRANT ALL PRIVILEGES ON wikip.* To Admin;
+GRANT SELECT ON characters TO User;
+GRANT SELECT ON elements TO User;
+GRANT SELECT ON foods TO User;
+GRANT SELECT ON rarity TO User;
+GRANT SELECT ON regions TO User;
+GRANT SELECT ON weapons TO User;
+GRANT SELECT ON weapontypes TO User;
+GRANT SELECT ON worldbosses TO User;
+
+-- 1 Список всех персонажей определённого элемента
+SELECT * FROM Characters WHERE Elements_id = 1;
+-- 2 Список всего оружия определённой редкости
+SELECT * FROM Weapons WHERE Rarity_ID = 2;
+-- 3 Список всех персонажей из определённого региона 
+SELECT * FROM Characters WHERE Regions_id = 4;
+-- 4 Изменений информации о персонаже 
+UPDATE Characters SET Name = 'Эола' WHERE ID = 1;
+-- 5 Удаление оружия из таблицы
+DELETE FROM Weapons WHERE ID = 8;
+-- Транзакция на изменение данных о персонаже по ID данных таблицы
+START TRANSACTION;
+    UPDATE characters SET Name = 'Diluc' WHERE ID = 1;
+    UPDATE characters SET model_size = 'Tall Male' WHERE ID = 1;
+    UPDATE characters SET weapontypes_id = '2' WHERE ID = 1;
+    UPDATE characters SET elements_id = '4' WHERE ID = 1;
+    UPDATE characters SET regions_id = '1' WHERE ID =1;
+	UPDATE characters SET rarity_id = '5' WHERE ID =1;
+COMMIT     
+-- Хранимая процедура
+DELIMITER $
+CREATE PROCEDURE AddNewCharacter(
+    IN _Name VARCHAR(255),
+    IN _Model_size VARCHAR(255),
+    IN _WeaponTypes_id INT,
+    IN _Elements_ID INT,
+    IN _Regions_ID INT,
+    IN _Rarity_ID INT
+)
+BEGIN
+    IF NOT EXISTS (SELECT * FROM Characters WHERE Name = _Name) THEN
+        INSERT INTO Characters (Name,Model_size,WeaponTypes_id, Elements_ID, Regions_ID, Rarity_ID)
+        VALUES (Diluc, Tall_Male, 2, 4, 1, 5);
+    ELSE
+        SELECT 'Character already exists.' AS ErrorMessage;
+    END IF;
+END $
+DELIMITER ;
+-- Процедура добавления персонажа в таблицу
+CALL AddNewCharacter('Diluc', 'Tall Male', 2, 4, 1, 5);
+-- Процедура подсчёта общего количества персонажей в таблице
+DELIMITER ;
+SET @num := 0;
+CALL CountCharacters(@num);
+SELECT @num AS TotalCharacters;
+--представление
+CREATE VIEW CharacterInfo AS
+SELECT 
+characters.id AS 'ID',
+characters.name AS 'Имя',
+characters.model_size AS'Размер персонажа',
+weapontypes.name AS 'Тип оружия',
+elements.name AS 'Элемент',
+regions.name AS 'Регион',
+rarity.stars AS 'Редкость'
+FROM 
+  characters
+  JOIN weapontypes ON characters.WeaponTypes_id = weapontypes.id
+  join elements ON characters.Elements_id = elements.id
+  join regions ON characters.Regions_id = regions.id
+  join rarity ON characters.Rarity_id = rarity.id
+ORDER BY characters.id;
+-- вызов представления
+ SELECT * FROM CharacterInfo;
